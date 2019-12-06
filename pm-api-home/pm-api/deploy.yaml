@@ -1,0 +1,51 @@
+application:
+  name: PM API
+  serverGroup: 298
+build:
+  type: java_war
+  tool: gradle
+  script: build.gradle
+  target: war
+  javaVersion: '11'
+package:
+  type: rpm
+  style: plain
+service:
+  name: pm_api
+  version: 1.9.0
+  buildDir: build/libs
+  tagGit: yes             # Should the pipeline tag the git repo with the version plus the build number, defaults to 'yes'
+environment:
+  - name: dev
+    isDev: no                       # Appends "_dev" to dev environment rpms, choices are: no (default), yes
+    instances:                      # Only used for RPM packages, ignored otherwise, the list of servers (instances) where the package will be deployed
+      - W2capl0029803.heb.com
+    deployment: dashboard_agent
+#    keyFile: pm-api.key    # SSH Key or Kubernetes bearer token used by the pipeline to authenticate to the target environment
+    repository: heb-app-releases
+  - name: cert
+    instances:
+      - W2capl0029803.heb.com
+#    keyFile: pm-api.key
+    deployment: dashboard_agent
+    repository: heb-app-releases
+  - name: prod
+    instances:
+      - W2capl0029803.heb.com
+      - W2capl0029803.heb.com
+#    keyFile: heb-project-api.key
+    deployment: dashboard_agent
+    repository: heb-app-releases #???
+registry:
+  - name: nexus2
+    host: nexus-repo.heb.com
+    type: nexus2
+    repository: releases
+release:                            # Each element defines a service release based on a git branch, every service will be suffixed (tagged) with the name of the release that corresponds to the branch, except for the 'prod' release which will not be suffixed at all, this is independent of the environment, hence an environment can be used to host many service releases (i.e. 'dev', 'dev2', 'int' service releases could all be on the 'dev' environment)
+  - prod:
+    branch: master                  # Name of the branch that is used to match this release
+  - cert:
+    branch: cert
+  - dev:
+    branch: dev
+

@@ -1,0 +1,10 @@
+{
+  "appName" : "PM-API",
+  "poc" : "ML.IS.PMTECHTEAM@heb.com",
+  "dependencies" : [
+    "org.springframework.boot:spring-boot-gradle-plugin:2.1.1.RELEASE",
+    "org.springframework.boot:spring-boot-starter-data-neo4j:2.1.1.RELEASE",
+    "org.springframework.boot:spring-boot-starter-data-rest:2.1.1.RELEASE",
+    "org.springframework.boot:spring-boot-starter-test:2.1.1.RELEASE"
+  ]
+}

@@ -1,0 +1,203 @@
+buildscript {
+	ext {
+		springBootVersion = '2.1.1.RELEASE'
+		springSecurityVersion = '4.1.1.RELEASE'
+		baseProjectName = "pm_api"
+		snapshotVersion = false
+
+		oracleDriver = 'ojdbc7'
+		oracleVersion = '12.1.0.1'
+
+		sqlServerVersion = '3.0'
+
+		// HEB library versions
+		pmServiceVersion = '1.2.19'
+		pmModelVersion = '2.5.1'
+		pmUtilVersion = '2.0.4'
+		pmDaoVersion = '2.5.1'
+		
+		// JMS versions
+		springJmsVersion = '5.1.5.RELEASE'
+		tibcoJmsVersion = '4.3.0'
+		jmsApiVersion = '2.0.1'
+	}
+	repositories {
+		mavenLocal()
+		mavenCentral()
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+	}
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'war'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'checkstyle'
+apply plugin: 'findbugs'
+apply plugin: 'pmd'
+
+defaultTasks 'clean', 'test', 'war'
+
+group = 'com.heb.pm'
+version = '1.9.0'
+sourceCompatibility = 1.8
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+	maven {
+		name "HEB Nexus Central"
+		url "http://nexus-lib.heb.com/nexus/content/repositories/central"
+	}
+	maven {
+		name "HEB Nexus Public"
+		url "http://nexus-lib.heb.com/nexus/content/repositories/public"
+	}
+	maven {
+		name "HEB PM"
+		url "http://nexus-lib.heb.com/nexus/content/repositories/PM"
+	}
+	maven {
+		name "HEB PM Snapshots"
+		url "http://nexus-lib.heb.com/nexus/content/repositories/PM-Snapshots"
+	}
+
+}
+
+dependencies {
+	
+	implementation('org.springframework.boot:spring-boot-starter-data-neo4j') {
+		exclude module: "javax.annotation-api"
+	}
+	/* Testing tools */
+	testCompile ("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
+	// H2
+	testCompile group: 'com.h2database', name: 'h2', version: '1.4.197'
+	compile ("org.springframework.boot:spring-boot-starter-tomcat"){
+		exclude module: "tomcat-embed-websocket"
+		exclude module: "tomcat-embed-core"
+		exclude module: "tomcat-embed-el"
+		exclude module: "javax.annotation-api"
+	}
+
+	//Security
+	compile('org.springframework.boot:spring-boot-starter-security')
+	compile "org.springframework.security:spring-security-ldap:$springSecurityVersion"
+
+	// This is needed to call soap services.
+	compile "com.sun.xml.messaging.saaj:saaj-impl:1.5.0"
+
+	// Spring JPA classes
+	compile("org.springframework.boot:spring-boot-starter-data-jpa") {
+		exclude module: "tomcat-embed-websocket"
+	}
+
+	// JDBC Drivers
+	compile "com.oracle:$oracleDriver:$oracleVersion"
+	compile "com.microsoft.sqlserver.jdbc:sqljdbc4:$sqlServerVersion"
+
+	compile "com.sun.xml.ws:rt:2.2.10"
+
+	// HEB libraries
+	compile "com.heb:product-maintenance-ws:$pmServiceVersion"
+	compile("com.heb.pm:pm-lib-model:$pmModelVersion")
+	compile("com.heb.pm:pm-lib-util:$pmUtilVersion")
+	compile("com.heb.pm:pm-lib-dao:$pmDaoVersion")
+
+	compile ("org.springframework.boot:spring-boot-starter-web"){
+		exclude module: "tomcat-embed-websocket"
+		exclude module: "tomcat-embed-core"
+		exclude module: "tomcat-embed-el"
+	}
+
+	compile ("javax.xml.ws:jaxws-api:2.2.6")
+	compile ("org.apache.commons:commons-text:1.6") {
+		exclude module: "tomcat-embed-core"
+		exclude module: "tomcat-embed-el"
+	}
+
+	compile "javax.servlet:javax.servlet-api:4.0.1"
+
+	// lombok
+	compileOnly "org.projectlombok:lombok:1.18.4"
+    annotationProcessor "org.projectlombok:lombok:1.18.4"
+    
+	//swagger
+	compile group: 'io.springfox', name: 'springfox-swagger2', version: '2.9.2'
+	compile group: 'io.springfox', name: 'springfox-swagger-ui', version: '2.9.2'
+
+	compile group: 'javax.annotation', name: 'javax.annotation-api', version: '1.3.2'
+
+	// JMS
+	compile ("tibco:tibjms:$tibcoJmsVersion")
+	compile ("org.springframework:spring-jms:$springJmsVersion")
+	compile ("javax.jms:javax.jms-api:$jmsApiVersion")
+}
+
+/*
+ * Configure the test task.
+ */
+test {
+	// This is needed as groovy/Spring are using reflection into the JVM which is no longer allowed by default.
+	// See https://stackoverflow.com/questions/41265266/how-to-solve-inaccessibleobjectexception-unable-to-make-member-accessible-m/41265267
+	// it's not the same error message, but is similar.
+	jvmArgs "--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED"
+}
+
+/*
+ * Configure the war task.
+ */
+war {
+	baseName = "$baseProjectName"
+	enabled=true
+	archiveName = baseName + ".war"
+}
+
+/*
+ * Static analysis config.
+ */
+checkstyle {
+	ignoreFailures = false
+	toolVersion '7.8.1'
+	configFile file("config/checkstyle/checkstyle.xml")
+}
+checkstyleMain {
+	source ='src/main/java'
+}
+checkstyleTest {
+	source ='src/test/java'
+}
+tasks.withType(FindBugs) {
+	reports {
+		xml.enabled = false
+		html.enabled = true
+	}
+}
+findbugs{
+	ignoreFailures=false
+	findbugsTest.enabled=false
+}
+tasks.withType(FindBugs) {
+	reports {
+		xml.enabled = false
+		html.enabled = true
+	}
+}
+pmd {
+	ignoreFailures = false
+	pmdTest.enabled = false
+	toolVersion '6.12.0'
+	ruleSetFiles = files("config/pmd/ruleset.xml")
+	ruleSets = []
+}
+// Add the build number to the build information available in the running application.
+springBoot {
+	buildInfo {
+		properties {
+			additional = ['appRelease': "$System.env.BUILD_NUMBER".toString()]
+		}
+	}
+}
